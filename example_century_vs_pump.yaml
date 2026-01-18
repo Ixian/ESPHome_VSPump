@@ -41,7 +41,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/Ixian/ESPHome_VSPump
-      ref: fix/bugs-and-failsafe
+      ref: additional_features
 
 uart:
   id: mod_uart
@@ -95,6 +95,50 @@ number:
     type: serial_timeout
     store_to_flash: true
     unit_of_measurement: s
+
+  # Freeze protection settings
+  - platform: centuryvspump
+    name: Pool Pump Freeze Protection Enabled
+    id: freeze_enable
+    type: freeze_enable
+    store_to_flash: true
+
+  - platform: centuryvspump
+    name: Pool Pump Freeze Temp Threshold
+    id: freeze_temp
+    type: freeze_temp
+    store_to_flash: true
+    unit_of_measurement: "°F"
+
+  - platform: centuryvspump
+    name: Pool Pump Freeze Protection Speed
+    id: freeze_speed
+    type: freeze_speed
+    store_to_flash: true
+    unit_of_measurement: RPM
+
+  # Priming settings
+  - platform: centuryvspump
+    name: Pool Pump Priming Duration
+    id: priming_duration
+    type: priming_duration
+    store_to_flash: true
+    unit_of_measurement: min
+
+  - platform: centuryvspump
+    name: Pool Pump Priming Speed
+    id: priming_speed
+    type: priming_speed
+    store_to_flash: true
+    unit_of_measurement: RPM
+
+  # Pause (temporary stop)
+  - platform: centuryvspump
+    name: Pool Pump Pause Duration
+    id: pause_duration
+    type: pause_duration
+    store_to_flash: true
+    unit_of_measurement: min
 
 sensor:
   - platform: centuryvspump

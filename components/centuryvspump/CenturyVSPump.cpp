@@ -322,5 +322,47 @@ namespace esphome
             };
             return cmd;
         }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        CenturyPumpCommand CenturyPumpCommand::create_config_read_uint16_command(CenturyVSPump *pump, uint8_t page, uint8_t address, std::function<void(CenturyVSPump *pump, uint16_t value)> on_value_func)
+        {
+            CenturyPumpCommand cmd = {};
+            cmd.pump_ = pump;
+            cmd.function_ = 0x64; // Config Read/Write
+            cmd.payload_.push_back(0);    // Read operation
+            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(address);
+            cmd.payload_.push_back(2);    // Read 2 bytes
+            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            {
+                if (data.size() >= 5)
+                {
+                    uint16_t value = (uint16_t)data[3] | ((uint16_t)data[4] << 8);
+                    ESP_LOGD(TAG, "Config read uint16 page %d, addr %d = %d", page, address, value);
+                    on_value_func(pump, value);
+                }
+            };
+            return cmd;
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        CenturyPumpCommand CenturyPumpCommand::create_config_write_uint16_command(CenturyVSPump *pump, uint8_t page, uint8_t address, uint16_t value, std::function<void(CenturyVSPump *pump)> on_confirmation_func)
+        {
+            CenturyPumpCommand cmd = {};
+            cmd.pump_ = pump;
+            cmd.function_ = 0x64; // Config Read/Write
+            cmd.payload_.push_back(1);    // Write operation
+            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(address);
+            cmd.payload_.push_back(2);    // Write 2 bytes
+            cmd.payload_.push_back(value & 0xff);        // Low byte
+            cmd.payload_.push_back((value >> 8) & 0xff); // High byte
+            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            {
+                ESP_LOGD(TAG, "Config write uint16 confirmed: page %d, addr %d = %d", page, address, value);
+                on_confirmation_func(pump);
+            };
+            return cmd;
+        }
     }
 }

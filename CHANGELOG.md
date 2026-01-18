@@ -6,7 +6,7 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 
 - **Fork**: https://github.com/Ixian/ESPHome_VSPump
 - **Upstream**: https://github.com/gazoodle/CenturyVSPump
-- **Branch**: `fix/bugs-and-failsafe`
+- **Branch**: `additional_features` (current), `main` (stable)
 
 ## Hardware
 
@@ -15,6 +15,38 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 - **Pump**: Century VGreen 165 (Regal Beloit EPC Gen3)
 - **Modbus Address**: 21
 - **Pins**: TX=GPIO26, RX=GPIO32, LED=GPIO27, Button=GPIO39
+
+## 2026-01-18 - Additional Configuration Features
+
+### New Config Types (Single-byte)
+
+| Type | Page | Addr | Range | Description |
+|------|------|------|-------|-------------|
+| `freeze_enable` | 10 | 0x06 | 0-1 | Enable/disable freeze protection |
+| `freeze_temp` | 10 | 0x07 | 32-50 | Freeze temperature threshold (°F) |
+| `priming_duration` | 10 | 0x02 | 0-15 | Priming duration (0=off, 3-15 min) |
+| `pause_duration` | 10 | 0x0B | 1-255 | Temporary stop duration (minutes) |
+
+### New Config Types (Uint16)
+
+| Type | Page | Addr | Range | Description |
+|------|------|------|-------|-------------|
+| `freeze_speed` | 10 | 0x09 | 600-3450 | Speed during freeze protection (RPM) |
+| `priming_speed` | 10 | 0x03 | 600-3450 | Speed during priming (RPM) |
+
+### Implementation Details
+
+1. **CenturyVSPumpConfigNumber16** - New component for 2-byte config values
+   - Reads/writes uint16 values across two consecutive addresses
+   - Same store_to_flash behavior as single-byte config
+
+2. **New Modbus commands**
+   - `create_config_read_uint16_command` - Read 2 bytes from config
+   - `create_config_write_uint16_command` - Write 2 bytes to config
+
+3. **Generic config types** - For custom registers not in presets
+   - `type: config` - Single byte with page/address
+   - `type: config16` - Uint16 with page/address
 
 ## 2026-01-18 - Initial Setup and Bug Fixes
 
