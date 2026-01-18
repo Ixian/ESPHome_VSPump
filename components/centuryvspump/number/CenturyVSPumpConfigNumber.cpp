@@ -8,7 +8,7 @@ namespace esphome
 
         CenturyPumpCommand CenturyVSPumpConfigNumber::create_command()
         {
-            return CenturyPumpCommand::create_config_read_command(pump_, page_, address_, [=](CenturyVSPump *pump, uint8_t value)
+            return CenturyPumpCommand::create_config_read_command(pump_, page_, address_, [this](CenturyVSPump *pump, uint8_t value)
                                                                   { this->publish_state((float)value); });
         }
 
@@ -17,7 +17,7 @@ namespace esphome
             uint8_t byte_value = (uint8_t)value;
             ESP_LOGD(TAG, "Set config page %d, addr %d to %d", page_, address_, byte_value);
 
-            pump_->queue_command_(CenturyPumpCommand::create_config_write_command(pump_, page_, address_, byte_value, [=](CenturyVSPump *pump)
+            pump_->queue_command_(CenturyPumpCommand::create_config_write_command(pump_, page_, address_, byte_value, [this, value](CenturyVSPump *pump)
                                                                                    {
                 this->publish_state(value);
                 if (store_to_flash_)
