@@ -51,6 +51,9 @@ namespace esphome
             static CenturyPumpCommand create_run_command(CenturyVSPump *pump, std::function<void(CenturyVSPump *pump)> on_confirmation_func);
             static CenturyPumpCommand create_stop_command(CenturyVSPump *pump, std::function<void(CenturyVSPump *pump)> on_confirmation_func);
             static CenturyPumpCommand create_set_demand_command(CenturyVSPump *pump, uint16_t demand, std::function<void(CenturyVSPump *pump)> on_confirmation_func);
+            static CenturyPumpCommand create_config_read_command(CenturyVSPump *pump, uint8_t page, uint8_t address, std::function<void(CenturyVSPump *pump, uint8_t value)> on_value_func);
+            static CenturyPumpCommand create_config_write_command(CenturyVSPump *pump, uint8_t page, uint8_t address, uint8_t value, std::function<void(CenturyVSPump *pump)> on_confirmation_func);
+            static CenturyPumpCommand create_store_config_command(CenturyVSPump *pump, std::function<void(CenturyVSPump *pump)> on_confirmation_func);
         };
 
         /////////////////////////////////////////////////////////////////////////////////////////////////

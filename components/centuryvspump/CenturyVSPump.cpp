@@ -173,10 +173,26 @@ namespace esphome
             {
                 ESP_LOGD(TAG, "Got status command reply %02X", data[0]);
 
-                if (data[0] == 0x00)
+                switch (data[0])
+                {
+                case 0x00: // Stopped
                     on_status_func(pump, false);
-                else if (data[0] == 0x0B)
+                    break;
+                case 0x09: // Boot/Initializing
+                    ESP_LOGD(TAG, "Pump is booting/initializing");
+                    on_status_func(pump, false);
+                    break;
+                case 0x0B: // Running
                     on_status_func(pump, true);
+                    break;
+                case 0x20: // Fault
+                    ESP_LOGW(TAG, "Pump reports FAULT condition");
+                    on_status_func(pump, false);
+                    break;
+                default:
+                    ESP_LOGW(TAG, "Unknown pump status: 0x%02X", data[0]);
+                    break;
+                }
             };
             return cmd;
         }
@@ -247,6 +263,61 @@ namespace esphome
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Set demand comfirmed");
+                on_confirmation_func(pump);
+            };
+            return cmd;
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        CenturyPumpCommand CenturyPumpCommand::create_config_read_command(CenturyVSPump *pump, uint8_t page, uint8_t address, std::function<void(CenturyVSPump *pump, uint8_t value)> on_value_func)
+        {
+            CenturyPumpCommand cmd = {};
+            cmd.pump_ = pump;
+            cmd.function_ = 0x64; // Config Read/Write
+            cmd.payload_.push_back(0);    // Read operation
+            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(address);
+            cmd.payload_.push_back(1);    // Read 1 byte
+            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            {
+                if (data.size() >= 4)
+                {
+                    uint8_t value = data[3];
+                    ESP_LOGD(TAG, "Config read page %d, addr %d = %d", page, address, value);
+                    on_value_func(pump, value);
+                }
+            };
+            return cmd;
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        CenturyPumpCommand CenturyPumpCommand::create_config_write_command(CenturyVSPump *pump, uint8_t page, uint8_t address, uint8_t value, std::function<void(CenturyVSPump *pump)> on_confirmation_func)
+        {
+            CenturyPumpCommand cmd = {};
+            cmd.pump_ = pump;
+            cmd.function_ = 0x64; // Config Read/Write
+            cmd.payload_.push_back(1);    // Write operation
+            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(address);
+            cmd.payload_.push_back(1);    // Write 1 byte
+            cmd.payload_.push_back(value);
+            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            {
+                ESP_LOGD(TAG, "Config write confirmed: page %d, addr %d = %d", page, address, value);
+                on_confirmation_func(pump);
+            };
+            return cmd;
+        }
+
+        /////////////////////////////////////////////////////////////////////////////////////////////
+        CenturyPumpCommand CenturyPumpCommand::create_store_config_command(CenturyVSPump *pump, std::function<void(CenturyVSPump *pump)> on_confirmation_func)
+        {
+            CenturyPumpCommand cmd = {};
+            cmd.pump_ = pump;
+            cmd.function_ = 0x65; // Store config to DataFlash
+            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            {
+                ESP_LOGD(TAG, "Config stored to DataFlash");
                 on_confirmation_func(pump);
             };
             return cmd;
