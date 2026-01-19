@@ -55,7 +55,7 @@ CenturyVSPumpConfigNumber16 = century_vs_pump_ns.class_(
 CONFIG_PRESETS = {
     NUMBER_TYPE_SERIAL_TIMEOUT: (1, 0x00, 0, 250, 1, 0),
     NUMBER_TYPE_FREEZE_ENABLE: (10, 0x06, 0, 2, 1, 0),
-    NUMBER_TYPE_FREEZE_TEMP: (10, 0x07, 32, 50, 1, 32),  # Pump stores 0-18, display 32-50°F
+    NUMBER_TYPE_FREEZE_TEMP: (10, 0x07, 32, 72, 1, 32),  # Pump stores 0-40, display 32-72°F
     NUMBER_TYPE_PRIMING_DURATION: (10, 0x23, 2, 15, 1, 0),  # 2=OFF, 3-15 min
     NUMBER_TYPE_PAUSE_DURATION: (10, 0x0B, 1, 255, 1, 0),
 }
