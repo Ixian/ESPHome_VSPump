@@ -54,7 +54,7 @@ CenturyVSPumpConfigNumber16 = century_vs_pump_ns.class_(
 # Single-byte presets - offset is added to raw value when reading, subtracted when writing
 CONFIG_PRESETS = {
     NUMBER_TYPE_SERIAL_TIMEOUT: (1, 0x00, 0, 250, 1, 0),
-    NUMBER_TYPE_FREEZE_ENABLE: (10, 0x06, 0, 1, 1, 0),
+    NUMBER_TYPE_FREEZE_ENABLE: (10, 0x06, 0, 2, 1, 0),
     NUMBER_TYPE_FREEZE_TEMP: (10, 0x07, 32, 50, 1, 32),  # Pump stores 0-18, display 32-50°F
     NUMBER_TYPE_PRIMING_DURATION: (10, 0x02, 0, 15, 1, 0),
     NUMBER_TYPE_PAUSE_DURATION: (10, 0x0B, 1, 255, 1, 0),
