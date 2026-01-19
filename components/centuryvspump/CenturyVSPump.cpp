@@ -279,9 +279,10 @@ namespace esphome
             cmd.payload_.push_back(0);        // Length 0 = 1 byte
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                if (data.size() >= 3)
+                if (data.size() >= 4)
                 {
-                    uint8_t value = data[2];
+                    // Response: page, address, length, data
+                    uint8_t value = data[3];
                     ESP_LOGD(TAG, "Config read page %d, addr %d = %d", page, address, value);
                     on_value_func(pump, value);
                 }
@@ -332,9 +333,10 @@ namespace esphome
             cmd.payload_.push_back(1);        // Length 1 = 2 bytes
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                if (data.size() >= 4)
+                if (data.size() >= 5)
                 {
-                    uint16_t value = (uint16_t)data[2] | ((uint16_t)data[3] << 8);
+                    // Response: page, address, length, data_lo, data_hi
+                    uint16_t value = (uint16_t)data[3] | ((uint16_t)data[4] << 8);
                     ESP_LOGD(TAG, "Config read uint16 page %d, addr %d = %d", page, address, value);
                     on_value_func(pump, value);
                 }
