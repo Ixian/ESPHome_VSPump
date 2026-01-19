@@ -17,6 +17,7 @@ namespace esphome
                 : CenturyPumpItemBase(), page_(page), address_(address) {}
 
             void set_store_to_flash(bool store) { store_to_flash_ = store; }
+            void set_offset(int16_t offset) { offset_ = offset; }
 
             CenturyPumpCommand create_command() override;
             void control(float value) override;
@@ -25,6 +26,7 @@ namespace esphome
             uint8_t page_;
             uint8_t address_;
             bool store_to_flash_{true};
+            int16_t offset_{0};
         };
     }
 }
