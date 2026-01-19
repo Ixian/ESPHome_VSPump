@@ -169,7 +169,7 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x43; // Pump status
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Got status command reply %02X", data[0]);
 
@@ -205,7 +205,7 @@ namespace esphome
             cmd.function_ = 0x45; // Read sensor
             cmd.payload_.push_back(page);
             cmd.payload_.push_back(address);
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 // Always going to have at least 1 byte of sensor data
                 uint16_t value = (uint16_t)data[2];
@@ -228,7 +228,7 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x41; // Go
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Confirmed pump running");
                 on_confirmation_func(pump);
@@ -242,7 +242,7 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x42; // Stop
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Confirmed pump stopped");
                 on_confirmation_func(pump);
@@ -260,7 +260,7 @@ namespace esphome
             demand *= 4;               // Scaling
             cmd.payload_.push_back(demand & 0xff);
             cmd.payload_.push_back(demand >> 8);
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Set demand comfirmed");
                 on_confirmation_func(pump);
@@ -278,7 +278,7 @@ namespace esphome
             cmd.payload_.push_back(page);
             cmd.payload_.push_back(address);
             cmd.payload_.push_back(1);    // Read 1 byte
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 if (data.size() >= 4)
                 {
@@ -301,7 +301,7 @@ namespace esphome
             cmd.payload_.push_back(address);
             cmd.payload_.push_back(1);    // Write 1 byte
             cmd.payload_.push_back(value);
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Config write confirmed: page %d, addr %d = %d", page, address, value);
                 on_confirmation_func(pump);
@@ -315,7 +315,7 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x65; // Store config to DataFlash
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Config stored to DataFlash");
                 on_confirmation_func(pump);
@@ -333,7 +333,7 @@ namespace esphome
             cmd.payload_.push_back(page);
             cmd.payload_.push_back(address);
             cmd.payload_.push_back(2);    // Read 2 bytes
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 if (data.size() >= 5)
                 {
@@ -357,7 +357,7 @@ namespace esphome
             cmd.payload_.push_back(2);    // Write 2 bytes
             cmd.payload_.push_back(value & 0xff);        // Low byte
             cmd.payload_.push_back((value >> 8) & 0xff); // High byte
-            cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
+            cmd.on_data_func_ = [=, this](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
                 ESP_LOGD(TAG, "Config write uint16 confirmed: page %d, addr %d = %d", page, address, value);
                 on_confirmation_func(pump);
