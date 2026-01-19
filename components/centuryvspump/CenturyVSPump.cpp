@@ -274,15 +274,14 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x64; // Config Read/Write
-            cmd.payload_.push_back(0);    // Read operation
-            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(page);     // Page (MSBit=0 for read)
             cmd.payload_.push_back(address);
-            cmd.payload_.push_back(1);    // Read 1 byte
+            cmd.payload_.push_back(0);        // Length 0 = 1 byte
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                if (data.size() >= 4)
+                if (data.size() >= 3)
                 {
-                    uint8_t value = data[3];
+                    uint8_t value = data[2];
                     ESP_LOGD(TAG, "Config read page %d, addr %d = %d", page, address, value);
                     on_value_func(pump, value);
                 }
@@ -296,10 +295,9 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x64; // Config Read/Write
-            cmd.payload_.push_back(1);    // Write operation
-            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(page | 0x80);  // Page with MSBit=1 for write
             cmd.payload_.push_back(address);
-            cmd.payload_.push_back(1);    // Write 1 byte
+            cmd.payload_.push_back(0);            // Length 0 = 1 byte
             cmd.payload_.push_back(value);
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
@@ -329,15 +327,14 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x64; // Config Read/Write
-            cmd.payload_.push_back(0);    // Read operation
-            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(page);     // Page (MSBit=0 for read)
             cmd.payload_.push_back(address);
-            cmd.payload_.push_back(2);    // Read 2 bytes
+            cmd.payload_.push_back(1);        // Length 1 = 2 bytes
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                if (data.size() >= 5)
+                if (data.size() >= 4)
                 {
-                    uint16_t value = (uint16_t)data[3] | ((uint16_t)data[4] << 8);
+                    uint16_t value = (uint16_t)data[2] | ((uint16_t)data[3] << 8);
                     ESP_LOGD(TAG, "Config read uint16 page %d, addr %d = %d", page, address, value);
                     on_value_func(pump, value);
                 }
@@ -351,10 +348,9 @@ namespace esphome
             CenturyPumpCommand cmd = {};
             cmd.pump_ = pump;
             cmd.function_ = 0x64; // Config Read/Write
-            cmd.payload_.push_back(1);    // Write operation
-            cmd.payload_.push_back(page);
+            cmd.payload_.push_back(page | 0x80);         // Page with MSBit=1 for write
             cmd.payload_.push_back(address);
-            cmd.payload_.push_back(2);    // Write 2 bytes
+            cmd.payload_.push_back(1);                   // Length 1 = 2 bytes
             cmd.payload_.push_back(value & 0xff);        // Low byte
             cmd.payload_.push_back((value >> 8) & 0xff); // High byte
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
