@@ -17,6 +17,7 @@ namespace esphome
             uint16_t uint16_value = (uint16_t)value;
             ESP_LOGD(TAG, "Set config16 page %d, addr %d to %d", page_, address_, uint16_value);
 
+            // State published only on pump confirmation, not optimistically
             pump_->queue_command_(CenturyPumpCommand::create_config_write_uint16_command(pump_, page_, address_, uint16_value, [this, value](CenturyVSPump *pump)
                                                                                           {
                 this->publish_state(value);
@@ -26,7 +27,6 @@ namespace esphome
                     pump_->queue_command_(CenturyPumpCommand::create_store_config_command(pump_, [](CenturyVSPump *pump)
                                                                                           { ESP_LOGD(TAG, "Config stored successfully"); }));
                 } }));
-            this->publish_state(value);
             pump_->update();
         }
     }

@@ -16,6 +16,8 @@ namespace esphome
         /////////////////////////////////////////////////////////////////////////////////////////////
         void CenturyVSPumpRunSwitch::write_state(bool state)
         {
+            // State published only on pump confirmation, not optimistically.
+            // Immediate update() polls status to detect failures.
             if (state)
             {
                 pump_->queue_command_(CenturyPumpCommand::create_run_command(pump_, [this](CenturyVSPump *pump)
@@ -27,7 +29,6 @@ namespace esphome
                                                                               { this->publish_state(false); }));
             }
 
-            this->publish_state(state);
             pump_->update();
         }
     }
