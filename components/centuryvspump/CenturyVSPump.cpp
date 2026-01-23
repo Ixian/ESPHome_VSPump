@@ -15,6 +15,18 @@ namespace esphome
 
         static const char *const TAG = "century_vs_pump";
 
+        // Helper function to validate response data size before accessing elements.
+        // Returns true if data has at least min_size elements, logs warning and returns false otherwise.
+        static bool validate_response_size(const std::vector<uint8_t> &data, size_t min_size, const char *cmd_name)
+        {
+            if (data.size() < min_size)
+            {
+                ESP_LOGW(TAG, "%s response too short: got %d bytes, need %d", cmd_name, data.size(), min_size);
+                return false;
+            }
+            return true;
+        }
+
         /////////////////////////////////////////////////////////////////////////////////////////////
         void CenturyVSPump::setup()
         {
@@ -63,6 +75,11 @@ namespace esphome
         void CenturyVSPump::on_modbus_data(const std::vector<uint8_t> &data)
         {
             ESP_LOGV(TAG, "Pump got data");
+            if (this->command_queue_.empty())
+            {
+                ESP_LOGW(TAG, "Received modbus data but command queue is empty, ignoring");
+                return;
+            }
             auto &current_command = this->command_queue_.front();
             if (current_command != nullptr)
             {
@@ -78,10 +95,15 @@ namespace esphome
         void CenturyVSPump::on_modbus_error(uint8_t function_code, uint8_t exception_code)
         {
             ESP_LOGV(TAG, "Received modbus error");
+            if (this->command_queue_.empty())
+            {
+                ESP_LOGW(TAG, "Received modbus error but command queue is empty, ignoring");
+                return;
+            }
             auto &current_command = this->command_queue_.front();
             if (current_command != nullptr)
             {
-                ESP_LOGD(TAG, "Modbus error, so removing current command (%02X) from queue", current_command->function_);
+                ESP_LOGD(TAG, "Modbus error (func=%02X, exc=%02X), removing command from queue", function_code, exception_code);
                 command_queue_.pop_front();
             }
         }
@@ -108,21 +130,28 @@ namespace esphome
         /////////////////////////////////////////////////////////////////////////////////////////////
         void CenturyVSPump::process_modbus_data_(const CenturyPumpCommand *response)
         {
-            // Ensure function matches ...
+            // Response must have at least function byte and ACK/NACK byte
+            if (response->payload_.size() < 2)
+            {
+                ESP_LOGW(TAG, "Response payload too short (%d bytes), ignoring", response->payload_.size());
+                return;
+            }
+
+            // Ensure function matches
             if (response->payload_[0] != response->function_)
             {
-                ESP_LOGW(TAG, "Payload data function mismatch (%X != %X), ignoring", response->payload_[0], response->function_);
+                ESP_LOGW(TAG, "Payload function mismatch (got %02X, expected %02X), ignoring", response->payload_[0], response->function_);
                 return;
             }
 
-            // Ensure ACK was OK
+            // Ensure ACK was OK (0x10 = ACK, other values are NACK error codes)
             if (response->payload_[1] != 0x10)
             {
-                ESP_LOGW(TAG, "Function %X NACK with %X, ignoring", response->function_, response->payload_[0]);
+                ESP_LOGW(TAG, "Function %02X NACK with error code %02X, ignoring", response->function_, response->payload_[1]);
                 return;
             }
 
-            // Pass to handler function
+            // Pass to handler function (strip function and ACK bytes)
             std::vector<uint8_t> data(response->payload_.begin() + 2, response->payload_.end());
             response->on_data_func_(this, data);
         }
@@ -171,6 +200,9 @@ namespace esphome
             cmd.function_ = 0x43; // Pump status
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
+                if (!validate_response_size(data, 1, "Status"))
+                    return;
+
                 ESP_LOGD(TAG, "Got status command reply %02X", data[0]);
 
                 switch (data[0])
@@ -207,11 +239,14 @@ namespace esphome
             cmd.payload_.push_back(address);
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                // Always going to have at least 1 byte of sensor data
+                // Response format: page, address, value (1-2 bytes)
+                if (!validate_response_size(data, 3, "Sensor read"))
+                    return;
+
                 uint16_t value = (uint16_t)data[2];
-                if (data.size() == 4)
+                if (data.size() >= 4)
                 {
-                    // But sometimes, we get two bytes
+                    // Two-byte sensor value (little-endian)
                     value |= (uint16_t)data[3] << 8;
                 }
                 // Scale the value
@@ -279,13 +314,21 @@ namespace esphome
             cmd.payload_.push_back(0);        // Length 0 = 1 byte
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                if (data.size() >= 4)
+                // Response format: page, address, length, data
+                if (!validate_response_size(data, 4, "Config read"))
+                    return;
+
+                // Validate response matches request (guards against line noise/corruption)
+                if (data[0] != page || data[1] != address)
                 {
-                    // Response: page, address, length, data
-                    uint8_t value = data[3];
-                    ESP_LOGD(TAG, "Config read page %d, addr %d = %d", page, address, value);
-                    on_value_func(pump, value);
+                    ESP_LOGW(TAG, "Config read response mismatch: expected page %d addr %d, got page %d addr %d",
+                             page, address, data[0], data[1]);
+                    return;
                 }
+
+                uint8_t value = data[3];
+                ESP_LOGD(TAG, "Config read page %d, addr %d = %d", page, address, value);
+                on_value_func(pump, value);
             };
             return cmd;
         }
@@ -333,13 +376,21 @@ namespace esphome
             cmd.payload_.push_back(1);        // Length 1 = 2 bytes
             cmd.on_data_func_ = [=](CenturyVSPump *pump, const std::vector<uint8_t> data)
             {
-                if (data.size() >= 5)
+                // Response format: page, address, length, data_lo, data_hi
+                if (!validate_response_size(data, 5, "Config read uint16"))
+                    return;
+
+                // Validate response matches request (guards against line noise/corruption)
+                if (data[0] != page || data[1] != address)
                 {
-                    // Response: page, address, length, data_lo, data_hi
-                    uint16_t value = (uint16_t)data[3] | ((uint16_t)data[4] << 8);
-                    ESP_LOGD(TAG, "Config read uint16 page %d, addr %d = %d", page, address, value);
-                    on_value_func(pump, value);
+                    ESP_LOGW(TAG, "Config read uint16 response mismatch: expected page %d addr %d, got page %d addr %d",
+                             page, address, data[0], data[1]);
+                    return;
                 }
+
+                uint16_t value = (uint16_t)data[3] | ((uint16_t)data[4] << 8);
+                ESP_LOGD(TAG, "Config read uint16 page %d, addr %d = %d", page, address, value);
+                on_value_func(pump, value);
             };
             return cmd;
         }
