@@ -18,35 +18,48 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 
 ## 2026-01-18 - Additional Configuration Features
 
-### New Config Types (Single-byte)
+### Generic Config Types
 
-| Type | Page | Addr | Range | Description |
-|------|------|------|-------|-------------|
-| `freeze_enable` | 10 | 0x06 | 0-1 | Enable/disable freeze protection |
-| `freeze_temp` | 10 | 0x07 | 32-50 | Freeze temperature threshold (°F) |
-| `priming_duration` | 10 | 0x02 | 0-15 | Priming duration (0=off, 3-15 min) |
-| `pause_duration` | 10 | 0x0B | 1-255 | Temporary stop duration (minutes) |
+Configuration registers are accessed using generic types with explicit page/address values.
+No hardcoded presets - all pump-specific values are defined in YAML.
 
-### New Config Types (Uint16)
+| Type | Description | Required Params |
+|------|-------------|-----------------|
+| `config` | Single byte (uint8) | `page`, `address` |
+| `config16` | Two bytes (uint16) | `page`, `address` |
 
-| Type | Page | Addr | Range | Description |
-|------|------|------|-------|-------------|
-| `freeze_speed` | 10 | 0x09 | 600-3450 | Speed during freeze protection (RPM) |
-| `priming_speed` | 10 | 0x03 | 600-3450 | Speed during priming (RPM) |
+Optional parameters for both types:
+- `store_to_flash` (default: true) - Persist changes to pump DataFlash
+- `offset` (config only, default: 0) - Value transformation offset
+
+### Example Usage
+
+```yaml
+number:
+  - platform: centuryvspump
+    name: Freeze Temp
+    type: config
+    page: 10
+    address: 0x07
+    offset: 32      # Pump stores 0-18, display as 32-50°F
+    min_value: 32
+    max_value: 50
+
+  - platform: centuryvspump
+    name: Freeze Speed
+    type: config16
+    page: 10
+    address: 0x0C
+    min_value: 600
+    max_value: 3450
+    step: 50
+```
 
 ### Implementation Details
 
-1. **CenturyVSPumpConfigNumber16** - New component for 2-byte config values
-   - Reads/writes uint16 values across two consecutive addresses
-   - Same store_to_flash behavior as single-byte config
-
-2. **New Modbus commands**
-   - `create_config_read_uint16_command` - Read 2 bytes from config
-   - `create_config_write_uint16_command` - Write 2 bytes to config
-
-3. **Generic config types** - For custom registers not in presets
-   - `type: config` - Single byte with page/address
-   - `type: config16` - Uint16 with page/address
+1. **CenturyVSPumpConfigNumber** - Single-byte config values with optional offset
+2. **CenturyVSPumpConfigNumber16** - Two-byte (uint16) config values
+3. **New Modbus commands**: config read/write (0x64), store to flash (0x65)
 
 ## 2026-01-18 - Initial Setup and Bug Fixes
 
@@ -97,9 +110,9 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 ## Protocol Reference
 
 Regal Beloit EPC Gen3 Modbus Protocol (Century VGreen):
-- Function 0x41: Read status
-- Function 0x42: Run pump
-- Function 0x43: Stop pump
+- Function 0x41: Run pump
+- Function 0x42: Stop pump
+- Function 0x43: Read status
 - Function 0x44: Read sensor (page, address, returns 16-bit scaled value)
 - Function 0x45: Set demand (RPM * 4)
 - Function 0x64: Read config byte (page, address)

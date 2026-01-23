@@ -42,11 +42,17 @@ Since this pump code is based off of data gleaned from an unsupported document, 
 external_components:
   - source:
       type: git
-      url: https://github.com/gazoodle/CenturyVSPump
+      url: https://github.com/Ixian/ESPHome_VSPump
       ref: main
 ```
 
 Once flashed and added to Home Assistant, you will be able to turn the pump on or off and set the RPM speed.
+
+## ESPHome Modbus Patch Required
+
+This component requires a patched ESPHome modbus component that exposes the raw payload for custom function codes. The standard ESPHome modbus component only supports standard Modbus functions (read/write coils and registers), but the Century pump uses custom function codes (0x41-0x65).
+
+See the ESPHome issue/PR for details on the required modification to `esphome/components/modbus/modbus.cpp`.
 
 # YAML configuration
 
@@ -55,7 +61,7 @@ external_components:
   # Location of CenturyVSPump component implementation
   - source:
       type: git
-      url: https://github.com/gazoodle/CenturyVSPump
+      url: https://github.com/Ixian/ESPHome_VSPump
       ref: main
 
 # You need a UART to talk to the RS485 bus
