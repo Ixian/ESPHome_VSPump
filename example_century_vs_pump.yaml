@@ -84,59 +84,96 @@ switch:
     id: pump_run
 
 number:
+  # Demand control (default type) - sets pump target speed
   - platform: centuryvspump
     name: Pool Pump Controller Demand
     id: pump_speed
     unit_of_measurement: RPM
 
+  # Configuration registers use page/address from pump documentation
+  # type: config = single byte (uint8), type: config16 = two bytes (uint16)
+  # offset: added to stored value when reading, subtracted when writing
+
+  # Serial timeout (page 1, address 0x00)
   - platform: centuryvspump
     name: Pool Pump Serial Timeout
     id: serial_timeout
-    type: serial_timeout
+    type: config
+    page: 1
+    address: 0x00
+    min_value: 0
+    max_value: 250
     store_to_flash: true
     unit_of_measurement: s
 
-  # Freeze protection settings
+  # Freeze protection settings (page 10)
   - platform: centuryvspump
     name: Pool Pump Freeze Protection Enabled
     id: freeze_enable
-    type: freeze_enable
+    type: config
+    page: 10
+    address: 0x06
+    min_value: 0
+    max_value: 1
     store_to_flash: true
 
   - platform: centuryvspump
     name: Pool Pump Freeze Temp Threshold
     id: freeze_temp
-    type: freeze_temp
+    type: config
+    page: 10
+    address: 0x07
+    offset: 32  # Pump stores 0-18, display as 32-50°F
+    min_value: 32
+    max_value: 50
     store_to_flash: true
     unit_of_measurement: "°F"
 
   - platform: centuryvspump
     name: Pool Pump Freeze Protection Speed
     id: freeze_speed
-    type: freeze_speed
+    type: config16
+    page: 10
+    address: 0x0C
+    min_value: 600
+    max_value: 3450
+    step: 50
     store_to_flash: true
     unit_of_measurement: RPM
 
-  # Priming settings
+  # Priming settings (page 10)
   - platform: centuryvspump
     name: Pool Pump Priming Duration
     id: priming_duration
-    type: priming_duration
+    type: config
+    page: 10
+    address: 0x10
+    min_value: 0
+    max_value: 30
     store_to_flash: true
     unit_of_measurement: min
 
   - platform: centuryvspump
     name: Pool Pump Priming Speed
     id: priming_speed
-    type: priming_speed
+    type: config16
+    page: 10
+    address: 0x0E
+    min_value: 600
+    max_value: 3450
+    step: 50
     store_to_flash: true
     unit_of_measurement: RPM
 
-  # Pause (temporary stop)
+  # Pause (temporary stop) - page 10
   - platform: centuryvspump
     name: Pool Pump Pause Duration
     id: pause_duration
-    type: pause_duration
+    type: config
+    page: 10
+    address: 0x11
+    min_value: 0
+    max_value: 30
     store_to_flash: true
     unit_of_measurement: min
 
