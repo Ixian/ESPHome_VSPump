@@ -6,7 +6,6 @@ from esphome.const import CONF_ID, CONF_ADDRESS, CONF_TYPE
 from esphome.cpp_helpers import logging
 
 from .. import (
-    add_century_vs_pump_base_properties,
     century_vs_pump_ns,
     CenturyVSPumpItemSchema,
 )
@@ -63,4 +62,3 @@ async def to_code(config):
     paren = await cg.get_variable(config[CONF_CENTURY_VS_PUMP_ID])
     cg.add(var.set_pump(paren))
     cg.add(paren.add_item(var))
-    await add_century_vs_pump_base_properties(var, config, CenturyVSPumpSensor)

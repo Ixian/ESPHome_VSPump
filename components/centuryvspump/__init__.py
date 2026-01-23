@@ -38,14 +38,6 @@ CenturyVSPumpItemSchema = cv.Schema(
 )
 
 
-async def add_century_vs_pump_base_properties(
-    var,
-    config,
-    sensor_type,
-):
-    pass
-
-
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await register_centuryvspump_device(var, config)
