@@ -38,7 +38,6 @@ namespace esphome
             static const uint8_t MAX_SEND_REPEATS = 5;
             CenturyVSPump *pump_{};
             uint8_t function_{};
-            uint8_t ack_{0x20};
             std::vector<uint8_t> payload_ = {};
             std::function<void(CenturyVSPump *pump, const std::vector<uint8_t> &data)> on_data_func_;
             // limit the number of repeats
@@ -122,7 +121,7 @@ namespace esphome
         private:
             std::list<std::unique_ptr<CenturyPumpCommand>> command_queue_;
             std::queue<std::unique_ptr<CenturyPumpCommand>> response_queue_;
-            uint32_t last_command_timestamp_;
+            uint32_t last_command_timestamp_{0};
             uint16_t command_throttle_{10};
 
         public:
