@@ -136,6 +136,14 @@ async def to_code(config):
         await number.register_number(var, config, **kwargs)
 
     elif num_type == NUMBER_TYPE_CONFIG16:
+        # Defaults for config16: uint16 range, step=1
+        if "min_value" not in kwargs:
+            kwargs["min_value"] = 0
+        if "max_value" not in kwargs:
+            kwargs["max_value"] = 65535
+        if "step" not in kwargs:
+            kwargs["step"] = 1
+
         page = config[CONF_PAGE]
         address = config[CONF_ADDRESS]
 
@@ -145,6 +153,14 @@ async def to_code(config):
         cg.add(var.set_store_to_flash(config[CONF_STORE_TO_FLASH]))
 
     else:  # NUMBER_TYPE_CONFIG
+        # Defaults for config: uint8 range, step=1
+        if "min_value" not in kwargs:
+            kwargs["min_value"] = 0
+        if "max_value" not in kwargs:
+            kwargs["max_value"] = 255
+        if "step" not in kwargs:
+            kwargs["step"] = 1
+
         page = config[CONF_PAGE]
         address = config[CONF_ADDRESS]
         offset = config.get(CONF_OFFSET, 0)
