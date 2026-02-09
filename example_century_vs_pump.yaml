@@ -1,13 +1,14 @@
 esphome:
   name: century-vs-pump-controller
+  friendly_name: Century VS Pump Controller
   on_boot:
     then:
       - light.turn_on:
           id: status_led
+          red: 1.0
+          green: 1.0
           blue: 1.0
           brightness: 0.3
-          green: 1.0
-          red: 1.0
 
 esp32:
   board: m5stack-atom
@@ -41,7 +42,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/Ixian/ESPHome_VSPump
-      ref: additional_features
+      ref: main
 
 uart:
   id: mod_uart
@@ -65,7 +66,7 @@ centuryvspump:
 light:
   - platform: esp32_rmt_led_strip
     id: status_led
-    name: Pool Pump Controller LED
+    name: Status LED
     pin: GPIO27
     num_leds: 1
     chipset: SK6812
@@ -73,20 +74,35 @@ light:
 
 binary_sensor:
   - platform: gpio
-    name: Pool Pump Controller Button
+    name: Button
     pin:
       number: GPIO39
       inverted: true
 
 switch:
   - platform: centuryvspump
-    name: Pool Pump Controller Run
+    name: Pump Run
     id: pump_run
+
+  # Template switch for freeze protection (shows On/Off instead of 1/0)
+  - platform: template
+    name: Freeze Protection
+    id: freeze_protection_switch
+    icon: mdi:snowflake-alert
+    lambda: 'return id(freeze_enable_num).state == 1;'
+    turn_on_action:
+      - number.set:
+          id: freeze_enable_num
+          value: 1
+    turn_off_action:
+      - number.set:
+          id: freeze_enable_num
+          value: 0
 
 number:
   # Demand control (default type) - sets pump target speed
   - platform: centuryvspump
-    name: Pool Pump Controller Demand
+    name: Pump Demand
     id: pump_speed
     unit_of_measurement: RPM
 
@@ -94,9 +110,9 @@ number:
   # type: config = single byte (uint8), type: config16 = two bytes (uint16)
   # offset: added to stored value when reading, subtracted when writing
 
-  # Serial timeout (page 1, address 0x00)
+  # Serial timeout (page 1, address 0x00) - failsafe if controller goes offline
   - platform: centuryvspump
-    name: Pool Pump Serial Timeout
+    name: Serial Timeout
     id: serial_timeout
     type: config
     page: 1
@@ -107,30 +123,33 @@ number:
     unit_of_measurement: s
 
   # Freeze protection settings (page 10)
+  # Hidden - controlled by template switch above
   - platform: centuryvspump
-    name: Pool Pump Freeze Protection Enabled
-    id: freeze_enable
+    name: Freeze Enable Raw
+    id: freeze_enable_num
     type: config
     page: 10
     address: 0x06
     min_value: 0
     max_value: 1
     store_to_flash: true
+    entity_category: diagnostic
+    internal: true
 
   - platform: centuryvspump
-    name: Pool Pump Freeze Temp Threshold
+    name: Freeze Temp Threshold
     id: freeze_temp
     type: config
     page: 10
     address: 0x07
-    offset: 32  # Pump stores 0-18, display as 32-50°F
+    offset: 32  # Pump stores 0-18, display as 32-50 F
     min_value: 32
     max_value: 50
     store_to_flash: true
-    unit_of_measurement: "°F"
+    unit_of_measurement: "F"
 
   - platform: centuryvspump
-    name: Pool Pump Freeze Protection Speed
+    name: Freeze Protection Speed
     id: freeze_speed
     type: config16
     page: 10
@@ -143,7 +162,7 @@ number:
 
   # Priming settings (page 10)
   - platform: centuryvspump
-    name: Pool Pump Priming Duration
+    name: Priming Duration
     id: priming_duration
     type: config
     page: 10
@@ -154,7 +173,7 @@ number:
     unit_of_measurement: min
 
   - platform: centuryvspump
-    name: Pool Pump Priming Speed
+    name: Priming Speed
     id: priming_speed
     type: config16
     page: 10
@@ -167,7 +186,7 @@ number:
 
   # Pause (temporary stop) - page 10
   - platform: centuryvspump
-    name: Pool Pump Pause Duration
+    name: Pause Duration
     id: pause_duration
     type: config
     page: 10
@@ -178,26 +197,127 @@ number:
     unit_of_measurement: min
 
 sensor:
+  # Current motor RPM
   - platform: centuryvspump
-    name: Pool Pump Controller RPM
+    name: Pump RPM
     type: rpm
     unit_of_measurement: RPM
 
+  # Demand readback from pump
   - platform: centuryvspump
-    name: Pool Pump Controller Demand Readback
+    name: Demand Readback
     address: 3
     page: 0
     scale: 4
     type: custom
     unit_of_measurement: RPM
 
+  # Temperature sensors
+  - platform: centuryvspump
+    name: Ambient Temperature
+    address: 7
+    page: 0
+    scale: 128
+    type: custom
+    unit_of_measurement: "F"
+    filters:
+      - offset: 32
+
+  - platform: centuryvspump
+    name: IGBT Temperature
+    address: 18
+    page: 0
+    scale: 128
+    type: custom
+    unit_of_measurement: "F"
+    filters:
+      - offset: 32
+
+  # Raw status values (hidden - used by template text_sensors)
+  - platform: centuryvspump
+    name: Motor Status Raw
+    id: motor_status_raw
+    address: 8
+    page: 0
+    scale: 1
+    type: custom
+    internal: true
+
+  - platform: centuryvspump
+    name: Prime Status Raw
+    id: prime_status_raw
+    address: 16
+    page: 0
+    scale: 1
+    type: custom
+    internal: true
+
+  - platform: centuryvspump
+    name: Previous Fault Raw
+    id: previous_fault_raw
+    address: 9
+    page: 0
+    scale: 1
+    type: custom
+    internal: true
+
   - platform: wifi_signal
-    name: Pool Pump Controller Wifi Signal
+    name: WiFi Signal
     update_interval: 60s
+
+text_sensor:
+  # Human-readable status from raw sensor values
+  - platform: template
+    name: Motor Status
+    id: motor_status
+    lambda: |-
+      int raw = (int)id(motor_status_raw).state;
+      switch (raw) {
+        case 0x00: return {"Stopped"};
+        case 0x09: return {"Starting"};
+        case 0x0B: return {"Running"};
+        case 0x20: return {"Fault"};
+        default: return {"Unknown"};
+      }
+    update_interval: 10s
+
+  - platform: template
+    name: Prime Status
+    id: prime_status
+    lambda: |-
+      int raw = (int)id(prime_status_raw).state;
+      switch (raw) {
+        case 0: return {"Idle"};
+        case 1: return {"Priming"};
+        case 2: return {"Complete"};
+        default: return {"Unknown"};
+      }
+    update_interval: 10s
+
+  - platform: template
+    name: Previous Fault
+    id: previous_fault
+    lambda: |-
+      int raw = (int)id(previous_fault_raw).state;
+      switch (raw) {
+        case 0x00: return {"None"};
+        case 0x21: return {"Overcurrent"};
+        case 0x22: return {"DC Overvoltage"};
+        case 0x2E: return {"IGBT Overtemp"};
+        case 0x3E: return {"Comm Loss"};
+        case 0x3F: return {"Generic Fault"};
+        case 0x40: return {"Coherence Fault"};
+        case 0x41: return {"UL Fault"};
+        default:
+          char buf[16];
+          snprintf(buf, sizeof(buf), "Code 0x%02X", raw);
+          return {buf};
+      }
+    update_interval: 10s
 
 button:
   - platform: template
-    name: Pool Pump Demand 600RPM
+    name: Set 600 RPM
     on_press:
       then:
         - number.set:
@@ -205,7 +325,7 @@ button:
             value: 600
 
   - platform: template
-    name: Pool Pump Demand 2000RPM
+    name: Set 2000 RPM
     on_press:
       then:
         - number.set:
@@ -213,7 +333,7 @@ button:
             value: 2000
 
   - platform: template
-    name: Pool Pump Demand 2600RPM
+    name: Set 2600 RPM
     on_press:
       then:
         - number.set:
@@ -221,7 +341,7 @@ button:
             value: 2600
 
   - platform: template
-    name: Pool Pump Demand 3450RPM
+    name: Set 3450 RPM
     on_press:
       then:
         - number.set:
@@ -229,7 +349,7 @@ button:
             value: 3450
 
   - platform: restart
-    name: Pool Pump Controller Restart
+    name: Restart
 
 web_server:
   local: true

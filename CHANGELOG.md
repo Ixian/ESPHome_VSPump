@@ -16,6 +16,30 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 - **Modbus Address**: 21
 - **Pins**: TX=GPIO26, RX=GPIO32, LED=GPIO27, Button=GPIO39
 
+## 2026-02-09 - Documentation Consolidation
+
+### New Documentation
+
+Added comprehensive documentation to make the repo self-contained:
+
+- `docs/CONFIGURATION.md` - Register maps, protocol details, ESPHome config options
+- `docs/HOME-ASSISTANT.md` - Entities, dashboards, example automations
+- `docs/SAFETY.md` - Freeze protection, failsafes, serial timeout behavior
+
+### Example YAML Updates
+
+Updated `example_century_vs_pump.yaml` with:
+- Temperature sensors (Ambient, IGBT)
+- Status text_sensors (Motor Status, Prime Status, Previous Fault)
+- Freeze protection template switch pattern
+- Generic config types (removed deprecated presets)
+
+### README Updates
+
+- Added documentation links section
+- Simplified YAML examples, link to full example file
+- Updated external_components to use `main` branch
+
 ## 2026-01-18 - Additional Configuration Features
 
 ### Generic Config Types
@@ -95,17 +119,16 @@ number:
 ## Current State
 
 - Firmware compiled cleanly (no warnings)
-- Installed on M5Stack ATOM Lite
-- Device online and accessible
-- **Not yet connected to actual pool pump**
+- Installed on M5Stack ATOM Lite at 192.168.68.70
+- Connected to Century VGreen pump via RS485
+- Integrated with Home Assistant
+- Autonomous scheduling running 24/7
+- Serial timeout failsafe configured (120s)
 
-## Next Steps
+## Future Work
 
-1. **Physical Connection** - Connect RS485 to pool pump's EPC connector
-2. **Communication Test** - Verify Modbus communication with pump
-3. **Serial Timeout Test** - Configure and test the failsafe timeout feature
-4. **Home Assistant Integration** - Add to HA and create automations
-5. **Upstream PR** - Consider submitting bug fixes to gazoodle/CenturyVSPump
+1. **Upstream PRs** - Submit bug fixes to gazoodle/CenturyVSPump (5 PRs planned)
+2. **Booster pump interlock** - Hardware relay for pressure-side cleaner safety
 
 ## Protocol Reference
 

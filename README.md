@@ -1,6 +1,13 @@
 # CenturyVSPump
 
-ESPHome custom component to drive Century (and other) variable speed pump motors
+ESPHome custom component to drive Century (and other) variable speed pump motors via RS485 Modbus.
+
+## Documentation
+
+- [Configuration Reference](docs/CONFIGURATION.md) - Register maps, protocol details, ESPHome config options
+- [Home Assistant Integration](docs/HOME-ASSISTANT.md) - Entities, dashboards, automations
+- [Safety Features](docs/SAFETY.md) - Freeze protection, failsafes, serial timeout
+- [Protocol Specification](docs/Gen3%20EPC%20Modbus%20Communication%20Protocol%20_Rev4.17.pdf) - Official Regal Modbus protocol
 
 ## Disclaimer
 
@@ -54,78 +61,72 @@ This component requires a patched ESPHome modbus component that exposes the raw 
 
 See the ESPHome issue/PR for details on the required modification to `esphome/components/modbus/modbus.cpp`.
 
-# YAML configuration
+# YAML Configuration
+
+See [example_century_vs_pump.yaml](example_century_vs_pump.yaml) for a complete configuration example including:
+- Temperature sensors (ambient, IGBT)
+- Motor status text sensors
+- Freeze protection settings
+- Configuration register access
+
+**Basic setup:**
 
 ```yaml
 external_components:
-  # Location of CenturyVSPump component implementation
   - source:
       type: git
       url: https://github.com/Ixian/ESPHome_VSPump
       ref: main
 
-# You need a UART to talk to the RS485 bus
 uart:
   baud_rate: 9600
   rx_pin: GPIO22
   tx_pin: GPIO19
 
-# You need the modbus component installed too
 modbus:
 
-# Include the CenturyVSPump external component in your firmware
 centuryvspump:
+  address: 21  # Pump Modbus address
 
 switch:
-  # Turn pump motor ON or OFF
   - platform: centuryvspump
-    name: Pool Pump Controller Run
+    name: Pump Run
 
-sensor:
-  # Get current motor speed in RPM
-  - platform: centuryvspump
-    name: Pool Pump Controller RPM
-    type: rpm
-    unit_of_measurement: RPM
-  # Get current motor speed demand in RPM
-  - platform: centuryvspump
-    name: Pool Pump Controller Demand
-    address: 3
-    page: 0
-    scale: 4
-    type: custom
-    unit_of_measurement: RPM
-
-# Control the pump speed demand RPM (range is from 600 to 3450 in steps of 50)
 number:
   - platform: centuryvspump
-    name: Pool Pump Controller Demand
-    id: id_number_rpm
+    name: Pump Demand
+    unit_of_measurement: RPM
 
-# You can also have some buttons to force specific RPM speeds
-button:
-  - platform: template
-    name: Pool Pump Controller Demand 600RPM
-    on_press:
-      then:
-        - number.set:
-            id: id_number_rpm
-            value: 600
-  - platform: template
-    name: Pool Pump Controller Demand 2600RPM
-    on_press:
-      then:
-        - number.set:
-            id: id_number_rpm
-            value: 2600
-  - platform: template
-    name: Pool Pump Controller Demand 3450RPM
-    on_press:
-      then:
-        - number.set:
-            id: id_number_rpm
-            value: 3450
+sensor:
+  - platform: centuryvspump
+    name: Pump RPM
+    type: rpm
+    unit_of_measurement: RPM
 ```
+
+**Configuration registers** use `type: config` (uint8) or `type: config16` (uint16):
+
+```yaml
+number:
+  - platform: centuryvspump
+    name: Serial Timeout
+    type: config
+    page: 1
+    address: 0x00
+    min_value: 0
+    max_value: 250
+
+  - platform: centuryvspump
+    name: Freeze Protection Speed
+    type: config16
+    page: 10
+    address: 0x09
+    min_value: 600
+    max_value: 3450
+    step: 50
+```
+
+See [Configuration Reference](docs/CONFIGURATION.md) for all available registers.
 
 # Keywords
 
@@ -149,7 +150,3 @@ A list of sources that I discovered and thought might be of use when driving my 
 - http://www.desert-home.com/2019/03/i-finally-gave-up-on-my-hayward.html
 - https://github.com/tagyoureit/nodejs-poolController/issues/393
 - https://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf
-
-```
-
-```
