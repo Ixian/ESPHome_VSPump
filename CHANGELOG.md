@@ -1,4 +1,4 @@
-# HSB-Pool Changelog
+# ESPHome_VSPump Changelog
 
 Century VS Pool Pump Controller - ESPHome component for controlling Century/Regal Beloit VGreen variable speed pool pumps via RS485 Modbus.
 
