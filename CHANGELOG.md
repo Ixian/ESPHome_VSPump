@@ -6,7 +6,49 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 
 - **Fork**: https://github.com/Ixian/ESPHome_VSPump
 - **Upstream**: https://github.com/gazoodle/CenturyVSPump
-- **Branch**: `additional_features` (current), `main` (stable)
+- **Stable branch**: `main`
+
+## 2026-08-24 - ESPHome 2026.8 Modbus Client Migration
+
+### Compatibility
+
+- Requires ESPHome 2026.8.0 or newer.
+- Migrated from the deprecated `ModbusDevice` compatibility layer to
+  `ModbusClientDevice`, `register_modbus_client_device`, address-free
+  `queue_pdu`, and the custom-response lifecycle callbacks.
+- No patched ESPHome Modbus component is required.
+
+### Reliability
+
+- Preserved one pump transaction in flight at a time.
+- Added a bounded local control queue and coalesced duplicate telemetry polls so
+  offline timeouts cannot grow the local poll backlog.
+- Added local control priority because ESPHome deterministically classifies all
+  vendor pump functions as custom reads; ordinary controls retain FIFO order,
+  while transaction continuations run ahead of unrelated controls.
+- STOP has a separate absolute-priority slot, removes pending demand/GO
+  commands, and suppresses retries of a superseded in-flight demand/GO command.
+- Counts actual wire transmissions and limits each no-response transaction to
+  five sends.
+- Retries temporary-busy exception `0x06` at most three times.
+
+### Configuration persistence
+
+- Reads before writing to avoid unnecessary DataFlash writes when the requested
+  value already matches.
+- Treats function `0x64` as a RAM write and function `0x65` as the separate
+  DataFlash store operation.
+- Waits one second after store acknowledgement and performs an explicit RAM
+  readback before publishing state. The protocol does not expose a direct
+  DataFlash read, so persistence cannot be proven without a pump reload.
+
+### Documentation and tests
+
+- Corrected the function-code table and removed the obsolete patched-ESPHome
+  requirement.
+- Updated the LED example from `rgb_order` to `channel_colors`.
+- Added tests for request PDU framing, response validation, scheduler bounds,
+  STOP priority, poll coalescing, and `millis()` rollover.
 
 ## Hardware
 
@@ -136,16 +178,17 @@ Regal Beloit EPC Gen3 Modbus Protocol (Century VGreen):
 - Function 0x41: Run pump
 - Function 0x42: Stop pump
 - Function 0x43: Read status
-- Function 0x44: Read sensor (page, address, returns 16-bit scaled value)
-- Function 0x45: Set demand (RPM * 4)
-- Function 0x64: Read config byte (page, address)
-- Function 0x65: Write config byte (page, address, value) + store command
+- Function 0x44: Set demand (RPM * 4)
+- Function 0x45: Read sensor (page, address, returns 16-bit scaled value)
+- Function 0x46: Read identification
+- Function 0x64: Read/write configuration RAM
+- Function 0x65: Store configuration RAM to DataFlash
 
 Status codes:
 - 0x00: Stopped
 - 0x09: Starting/ramping
 - 0x0B: Running
-- 0x20: Unknown (treated as running)
+- 0x20: Fault
 
 Config registers:
 - Page 1, Address 0: Serial timeout (seconds, 0-250, 0=disabled)

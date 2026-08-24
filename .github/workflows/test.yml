@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  protocol-and-scheduler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run protocol test
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -I. tests/protocol_test.cpp -o /tmp/vspump-protocol-test
+          /tmp/vspump-protocol-test
+      - name: Build and run scheduler test
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -I. tests/command_queue_test.cpp -o /tmp/vspump-command-queue-test
+          /tmp/vspump-command-queue-test
+
+  esphome-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ESPHome
+        run: pip install esphome==2026.8.1
+      - name: Validate component fixture
+        run: esphome config tests/compile.yaml
+      - name: Reject a zero sensor scale
+        run: |
+          if esphome config tests/invalid_scale.yaml; then
+            echo "scale: 0 unexpectedly passed validation"
+            exit 1
+          fi
+      - name: Compile component fixture
+        run: esphome compile tests/compile.yaml

@@ -31,6 +31,11 @@ number:
 
 Set to 0 to disable (not recommended).
 
+When Home Assistant sets the serial timeout, the component reads the current
+value first. It writes and requests a store only when the value differs, then
+waits for the store interval and verifies the RAM value with a readback. The
+pump protocol does not expose a direct DataFlash read.
+
 ## Freeze Protection
 
 **Important:** The pump's built-in freeze protection is disabled when under RS-485/Modbus automation control. The pump expects the external controller to handle freeze logic.
