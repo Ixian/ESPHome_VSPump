@@ -36,9 +36,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(CenturyVSPumpSensor),
             cv.Required(CONF_TYPE): cv.enum(SENSOR_TYPES),
-            cv.Optional(CONF_ADDRESS, default=0): cv.positive_int,
-            cv.Optional(CONF_PAGE, default=0): cv.positive_int,
-            cv.Optional(CONF_SCALE, default=1): cv.positive_int,
+            cv.Optional(CONF_ADDRESS, default=0): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_PAGE, default=0): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_SCALE, default=1): cv.int_range(min=1, max=65535),
         }
     ),
 )

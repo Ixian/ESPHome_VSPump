@@ -1,0 +1,62 @@
+esphome:
+  name: vspump-component-test
+
+esp32:
+  board: m5stack-atom
+  framework:
+    type: arduino
+
+logger:
+
+external_components:
+  - source: ../components
+
+uart:
+  id: mod_uart
+  baud_rate: 9600
+  tx_pin: GPIO26
+  rx_pin: GPIO32
+
+modbus:
+  id: mod_bus
+  uart_id: mod_uart
+
+centuryvspump:
+  id: pool_pump
+  address: 21
+  modbus_id: mod_bus
+  update_interval: 10s
+
+switch:
+  - platform: centuryvspump
+    name: Pump Run
+
+number:
+  - platform: centuryvspump
+    name: Pump Demand
+  - platform: centuryvspump
+    name: Serial Timeout
+    type: config
+    page: 1
+    address: 0x00
+    min_value: 0
+    max_value: 250
+  - platform: centuryvspump
+    name: Priming Speed
+    type: config16
+    page: 10
+    address: 0x03
+    min_value: 600
+    max_value: 3450
+    step: 50
+
+sensor:
+  - platform: centuryvspump
+    name: Pump RPM
+    type: rpm
+  - platform: centuryvspump
+    name: Demand Readback
+    type: custom
+    page: 0
+    address: 3
+    scale: 4
