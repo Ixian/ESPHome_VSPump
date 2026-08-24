@@ -11,10 +11,11 @@ The Century VGreen pump uses a custom Modbus protocol with function codes in the
 | 0x41 | Run pump |
 | 0x42 | Stop pump |
 | 0x43 | Read status |
-| 0x44 | Read sensor (page, address, returns 16-bit scaled value) |
-| 0x45 | Set demand (RPM * 4) |
-| 0x64 | Read config byte (page, address) |
-| 0x65 | Write config byte (page, address, value) + store command |
+| 0x44 | Set demand (RPM * 4) |
+| 0x45 | Read sensor (page, address, returns 16-bit scaled value) |
+| 0x46 | Read identification |
+| 0x64 | Read or write configuration RAM |
+| 0x65 | Store configuration RAM to DataFlash |
 
 Full protocol documentation: [Gen3 EPC Modbus Communication Protocol v4.17](Gen3%20EPC%20Modbus%20Communication%20Protocol%20_Rev4.17.pdf)
 
@@ -54,6 +55,26 @@ Configuration registers use explicit page/address values. Two types available:
 | `store_to_flash` | No | true | Persist to pump DataFlash |
 
 **Offset behavior:** Added when reading, subtracted when writing. Example: pump stores 0-18 internally, offset=32 displays 32-50.
+
+### Configuration write verification
+
+Changing a config number performs a read-before-write transaction. If the RAM
+value already matches, no write or DataFlash store is issued. Otherwise the
+component writes RAM with function `0x64`, optionally stores it with `0x65`,
+waits the protocol-required one-second DataFlash interval, and explicitly reads
+the RAM value back before publishing entity state. This avoids unnecessary
+flash writes from repeated Home Assistant boot-time settings and prevents a
+write ACK from being mistaken for a verified value.
+
+The protocol provides an acknowledgement that the `0x65` store command was
+accepted, but it does not provide a command to read DataFlash directly. The
+post-store `0x64` readback verifies RAM, not persistence across a pump power
+cycle. When the initial RAM value already matches, the component deliberately
+skips the store to reduce flash wear.
+
+Pump exception `0x06` (command cannot be executed now) is retried with a bounded
+limit. Other exceptions fail the transaction without publishing the requested
+value.
 
 ## Configuration Parameters
 

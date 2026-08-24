@@ -2,6 +2,8 @@
 
 ESPHome custom component to drive Century (and other) variable speed pump motors via RS485 Modbus.
 
+Requires ESPHome 2026.8.0 or newer.
+
 ## Documentation
 
 - [Configuration Reference](docs/CONFIGURATION.md) - Register maps, protocol details, ESPHome config options
@@ -50,16 +52,25 @@ external_components:
   - source:
       type: git
       url: https://github.com/Ixian/ESPHome_VSPump
-      ref: main
+      ref: <full-commit-sha>
+    refresh: never
 ```
+
+Pin deployments to a tested full commit SHA. Use a branch such as `main` only while developing.
 
 Once flashed and added to Home Assistant, you will be able to turn the pump on or off and set the RPM speed.
 
-## ESPHome Modbus Patch Required
+## ESPHome Modbus Integration
 
-This component requires a patched ESPHome modbus component that exposes the raw payload for custom function codes. The standard ESPHome modbus component only supports standard Modbus functions (read/write coils and registers), but the Century pump uses custom function codes (0x41-0x65).
+No ESPHome patch is required. The component uses the supported ESPHome 2026.8
+`ModbusClientDevice` API and handles the pump's vendor function codes through
+`on_custom_response`.
 
-See the ESPHome issue/PR for details on the required modification to `esphome/components/modbus/modbus.cpp`.
+The component keeps control operations ahead of telemetry polls. Ordinary
+controls preserve FIFO order, transaction continuations stay together, and
+STOP has absolute local priority. Repeated polls are coalesced while the pump
+is offline, and timeouts and temporary-busy responses have bounded retry
+limits.
 
 # YAML Configuration
 
@@ -76,7 +87,8 @@ external_components:
   - source:
       type: git
       url: https://github.com/Ixian/ESPHome_VSPump
-      ref: main
+      ref: <full-commit-sha>
+    refresh: never
 
 uart:
   baud_rate: 9600
@@ -127,6 +139,20 @@ number:
 ```
 
 See [Configuration Reference](docs/CONFIGURATION.md) for all available registers.
+
+## Development checks
+
+The byte-level protocol test uses the same helpers compiled into the firmware:
+
+```bash
+c++ -std=c++20 -Wall -Wextra -Werror -I. tests/protocol_test.cpp -o /tmp/vspump-protocol-test
+/tmp/vspump-protocol-test
+c++ -std=c++20 -Wall -Wextra -Werror -I. tests/command_queue_test.cpp -o /tmp/vspump-command-queue-test
+/tmp/vspump-command-queue-test
+```
+
+Validate and compile `example_century_vs_pump.yaml` with ESPHome 2026.8.1 or
+newer before publishing a component revision.
 
 # Keywords
 

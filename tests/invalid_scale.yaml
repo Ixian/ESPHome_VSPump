@@ -1,0 +1,33 @@
+esphome:
+  name: century-vs-pump-invalid-scale
+
+esp32:
+  board: esp32dev
+
+external_components:
+  - source:
+      type: local
+      path: ../components
+    components: [centuryvspump]
+
+uart:
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 19200
+
+modbus:
+  id: modbus_hub
+
+centuryvspump:
+  id: pump
+  modbus_id: modbus_hub
+  address: 0x15
+
+sensor:
+  - platform: centuryvspump
+    century_vs_pump_id: pump
+    type: custom
+    page: 0
+    address: 1
+    scale: 0
+    name: Invalid Scale

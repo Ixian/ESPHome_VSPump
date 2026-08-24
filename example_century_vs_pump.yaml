@@ -42,7 +42,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/Ixian/ESPHome_VSPump
-      ref: main
+      ref: main  # Replace with a tested full commit SHA for deployment
 
 uart:
   id: mod_uart
@@ -70,7 +70,7 @@ light:
     pin: GPIO27
     num_leds: 1
     chipset: SK6812
-    rgb_order: GRB
+    channel_colors: GRB
 
 binary_sensor:
   - platform: gpio
