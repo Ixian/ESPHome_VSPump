@@ -76,6 +76,41 @@ Pump exception `0x06` (command cannot be executed now) is retried with a bounded
 limit. Other exceptions fail the transaction without publishing the requested
 value.
 
+The scheduler deliberately holds all ordinary controls and telemetry behind a
+delayed queue head. This keeps the bus quiet for the one-second DataFlash store
+interval and preserves ordering during the shorter busy-retry and queue-refusal
+backoffs. STOP uses a separate priority slot and is not blocked by these delays.
+
+If an ACK has the wrong length or does not echo the requested
+page/address/length/value, the component logs a warning and abandons that
+transaction. It does not publish the requested value, automatically retry the
+transaction, or republish state; Home Assistant retains the last value that was
+successfully read from the pump.
+
+### Protocol response layouts
+
+The implemented layouts were checked against the bundled Gen3 EPC Modbus
+protocol PDF:
+
+| Function | Implemented response data after function/ACK | Specification |
+|----------|------------------------------------------------|---------------|
+| `0x41` Go | none | PDF page 10, section 5.7.1 |
+| `0x42` Stop | none | PDF page 10, section 5.7.2 |
+| `0x43` Status | one status byte | PDF page 11, section 5.7.3 |
+| `0x44` Set Demand | mode, demand low, demand high | PDF page 11, section 5.7.4 |
+| `0x45` Read Sensor | page, address, value low, value high | PDF page 12, section 5.7.5 |
+| `0x64` Configuration Read/Write | page, address, length, `length + 1` data bytes | PDF pages 13-14, section 5.7.7 |
+| `0x65` Store Configuration | none | PDF page 15, section 5.7.9 |
+
+For `0x64`, the table defines the length as “total number of parameters minus
+one” and the data field as `length + 1` bytes. The prose below the table also
+says “Valid length is 0 corresponding to 1 byte of data,” which conflicts with
+the general table. Appendix C represents 16-bit settings as adjacent one-byte
+LSB/MSB addresses (for example, Priming Speed at page 10 addresses `0x03` and
+`0x04`, PDF page 51). `config16` follows the table and requests both adjacent
+bytes with length `1`; this behavior predates the ESPHome 2026.8 migration and
+must still be confirmed for writes during post-flash hardware validation.
+
 ## Configuration Parameters
 
 ### Page 1 - Serial Settings

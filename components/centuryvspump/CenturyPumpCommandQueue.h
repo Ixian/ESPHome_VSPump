@@ -76,6 +76,9 @@ public:
   CenturyPumpCommand *next() {
     if (this->stop_ != nullptr)
       return this->stop_.get();
+    // Delayed queue heads intentionally hold later controls and polls. This
+    // preserves FIFO/transaction ordering and provides the required quiet bus
+    // interval after a DataFlash store. STOP remains independently eligible.
     if (!this->controls_.empty())
       return this->controls_.front().get();
     if (!this->polls_.empty())
@@ -95,6 +98,14 @@ public:
   }
 
   void restore_front(std::unique_ptr<CenturyPumpCommand> command) {
+    // A temporarily-busy STOP must retain its dedicated priority slot. Routing
+    // it through controls_ would allow a second STOP into stop_ and transmit
+    // the same idempotent command twice.
+    if (command->function_ == 0x42) {
+      if (this->stop_ == nullptr)
+        this->stop_ = std::move(command);
+      return;
+    }
     if (command->kind_ == CenturyPumpCommandKind::CONTROL)
       this->controls_.push_front(std::move(command));
     else
