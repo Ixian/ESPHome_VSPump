@@ -50,6 +50,15 @@ Century VS Pool Pump Controller - ESPHome component for controlling Century/Rega
 - Added tests for request PDU framing, response validation, scheduler bounds,
   STOP priority, poll coalescing, and `millis()` rollover.
 
+## 2026-08-25 - Independent Audit Follow-up
+
+- Kept a temporarily-busy STOP in its dedicated absolute-priority slot so a
+  second STOP request remains deduplicated while the retry is pending.
+- Added a regression test for STOP busy retry followed by a duplicate STOP.
+- Documented intentional head-of-line blocking during store/retry backoffs,
+  response-validation failure behavior, and the protocol PDF pages supporting
+  each implemented response layout.
+
 ## Hardware
 
 - **Controller**: M5Stack ATOM Lite (ESP32-PICO-D4)

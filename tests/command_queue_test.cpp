@@ -88,6 +88,25 @@ int main() {
 
   {
     CenturyPumpCommandQueue queue;
+    assert(queue.enqueue_stop(command(0x42)) == ControlQueueResult::QUEUED);
+    auto busy_stop = queue.take_next();
+    busy_stop->busy_retry_count_ = 1;
+    queue.restore_front(std::move(busy_stop));
+
+    // A busy-retried STOP stays in the absolute-priority slot, and a second
+    // request is deduplicated instead of producing two STOP frames.
+    assert(queue.stop_pending());
+    assert(queue.control_size() == 0);
+    assert(queue.enqueue_stop(command(0x42)) ==
+           ControlQueueResult::DUPLICATE_STOP);
+    auto retried_stop = queue.take_next();
+    assert(retried_stop->function_ == 0x42);
+    assert(retried_stop->busy_retry_count_ == 1);
+    assert(queue.take_next() == nullptr);
+  }
+
+  {
+    CenturyPumpCommandQueue queue;
     for (size_t i = 0; i < CenturyPumpCommandQueue::MAX_CONTROL_QUEUE_SIZE - 1;
          i++) {
       assert(queue.enqueue_control(command(0x64, {static_cast<uint8_t>(i)})) ==
